@@ -1,67 +1,107 @@
 # client
 import socket
 import sys
-from libs import add_header
-s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+import libs 
+
+
 try:
-    s.connect((socket.gethostname(),4444))
-except Exception as e:
-    print("server is down")
-    sys.exit()
-HEADERSIZE = 10
-def receive_msg(sock):
-    full_msg = ""
-    new_msg = True
-    msg_len = 0
 
+    def recvClientSide(s):
+        while True:
+            l = 0
+            import time
+            time.sleep(1)
+            welcome = libs.receive_msg(s)
+            if welcome:
+                if welcome["action"] == "close":
+                    print(welcome["user_msg"])
+                    sys.exit()
+                elif welcome["action"] == "SENDED?":
+                    print(welcome["user_msg"])
+                    a = libs.ready(action="YES")
+                    libs.send(s,a)
+                    l = 0
+                    continue
+                else:
+                    return welcome
+                break
+
+        
+            else:
+                
+                # print("hone")
+                # sys.exit()
+                while True:
+                    time.sleep(1)    
+                    l+=1
+                    print(l)
+                    welcome = libs.receive_msg(s)
+                    print(welcome["user_msg"])
+                    if welcome["action"] == "SENDED?":
+                        a = libs.ready(action="YES")
+                        libs.send(s,a)
+                        print("yes")
+                        l = 0
+                        continue
+                    elif welcome:
+                        return welcome
+                    if l >= 10:
+                        print("server is down")
+                        sys.exit()
+
+    #-------------------------
+
+
+
+
+
+    location = False
+    s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    try:
+        s.connect((socket.gethostname(),4444))
+    except Exception as e:
+        print("server is down")
+        sys.exit()
     while True:
-        msg = sock.recv(2048)
-        msg_decoded = msg.decode("utf-8")
-
-        if not msg:
+        welcome = recvClientSide(s)
+        if welcome["action"] == "TRUE_GO":
+            print(welcome["user_msg"])
+            r = True
+            if welcome["hint"] == "location":
+                location = welcome["action"] 
             break
-
-        if new_msg:
-            msg_len = int(msg_decoded[:HEADERSIZE])    
-            new_msg = False
-
-        full_msg += msg_decoded
-
-
-        if len(full_msg) - HEADERSIZE == msg_len:
-            return full_msg[HEADERSIZE:]
-
-
-welcome = receive_msg(s)
-print (welcome)
-for w in range(1):
-    cmd = input()
-    if cmd == "close" or not cmd:
-        break
-
-    
-    s.send(cmd.encode("utf-8"))
-
-
-    reply = receive_msg(s)
-    if not reply:
-        print("server is down")
-        break
-    
-    print(reply)
-    break
-while True:
-    cmd = input("""┌──(root㉿root-kali)-[~]
-└─# """) #خليتها root㉿root-kali مؤقتا لحد ما اعمل users
-    if cmd == "close" or not cmd:
-        break
-
-    s.send(cmd.encode("utf-8"))
+        else:
+            if welcome["action"] == "BLOCKED":
+                print(welcome["user_msg"])
+                sys.exit()
+            print(welcome["user_msg"])
+            cmd = input()
+            if cmd == "close" or not cmd:
+                sys.exit()
+                break
+            cmd = libs.ready(user_msg=cmd)
+            libs.send(s,cmd)
+    user_name = welcome["user_name"]
+    while r == True:
+        if location:
+            cmd = input(f"""┌──({user_name}㉿root-kali)-[{location}]
+└─# """)
+        else:
+            cmd = input(f"""┌──({user_name}㉿root-kali)-[~]
+└─# """)
+        if cmd == "close" or not cmd:
+            break
+        f = libs.ready(user_msg=cmd)
+        libs.send(s,f)
 
 
-    reply = receive_msg(s)
-    if not reply:
-        print("server is down")
-        break
-    
-    print(reply)
+        reply = recvClientSide(s)
+        if not reply:
+            print("server is down")
+            break
+        if reply["hint"] == "location":
+            location = reply["action"] 
+
+        print(reply["user_msg"])
+except Exception as error:
+    print(f"ERROR : {error}")

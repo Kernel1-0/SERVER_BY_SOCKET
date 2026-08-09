@@ -5,9 +5,14 @@ def add_header(msg):
     return a
 #------------------------------------
 def send(sock,msg):
-    sock.send(msg.encode("utf-8"))
+    import json
+    json_string = json.dumps(msg)
+    msg_with_header = add_header(json_string)
+
+    sock.send(msg_with_header.encode("utf-8"))
 #------------------------------------
 def receive_msg(sock):
+    import json
     full_msg = ""
     new_msg = True
     msg_len = 0
@@ -18,6 +23,14 @@ def receive_msg(sock):
 
         if not msg:
             break
+            # for attemp in range(1,11):
+            #     msg = sock.recv(2048)
+            #     msg_decoded = msg.decode("utf-8")
+            #     if msg:
+            #         break
+            #     if not msg and attemp >= 10:
+            #         return False
+            
 
         if new_msg:
             msg_len = int(msg_decoded[:HEADERSIZE])    
@@ -27,7 +40,8 @@ def receive_msg(sock):
 
 
         if len(full_msg) - HEADERSIZE == msg_len:
-            return full_msg[HEADERSIZE:]
+            actual_msg = full_msg[HEADERSIZE:]
+            return json.loads(actual_msg)
         
 #------------------------------------
 
@@ -41,4 +55,11 @@ def get_client_mac(client_ip):
     except Exception:
         return False
 
-    
+def ready(action="new_alert",user_msg="close",role="NONE",user_name="ANONYMOUS",hint="hint"):
+        return {
+        "action" : action,
+        "user_msg" : user_msg,
+        "role" : role,
+        "user_name" : user_name,
+        "hint" : hint
+        }

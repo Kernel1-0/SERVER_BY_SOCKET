@@ -1,0 +1,7 @@
+{
+    "start": "start",
+    "KERNEL": {
+        "pass": "kernel",
+        "role": "admin"
+    }
+}
